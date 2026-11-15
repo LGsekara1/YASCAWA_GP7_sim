@@ -1,0 +1,395 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="GP7 Robot.SLDASM">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="0.00557004423745245 -1.25475616866323E-06 0.0947578598994955"
+        rpy="0 0 0" />
+      <mass
+        value="5.21535720192103" />
+      <inertia
+        ixx="0.0260255175008665"
+        ixy="-2.60386324335202E-05"
+        ixz="-0.000139873884280871"
+        iyy="0.0252947855021259"
+        iyz="4.77039716223899E-05"
+        izz="0.0217201855959046" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="Link 1">
+    <inertial>
+      <origin
+        xyz="0.00889363678863726 0.0998493397029135 0.0129054107288008"
+        rpy="0 0 0" />
+      <mass
+        value="2.94466622383767" />
+      <inertia
+        ixx="0.0116958970931835"
+        ixy="-0.00125107829854208"
+        ixz="-0.000359482800869111"
+        iyy="0.00886872028402424"
+        iyz="-0.00178442340173419"
+        izz="0.0114324988301917" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/Link 1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/Link 1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="joint1"
+    type="revolute">
+    <origin
+      xyz="0 0 0.190100000000745"
+      rpy="1.5707963267949 0 -1.00735537629785" />
+    <parent
+      link="base_link" />
+    <child
+      link="Link 1" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-5.51903149270317"
+      upper="0.415087964077542"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link2">
+    <inertial>
+      <origin
+        xyz="0.1529778642967 0.033807984997752 0.0750141978978062"
+        rpy="0 0 0" />
+      <mass
+        value="6.24054641969418" />
+      <inertia
+        ixx="0.0340664785393455"
+        ixy="-0.01644397435974"
+        ixz="-0.0146548551018445"
+        iyy="0.111279317136978"
+        iyz="-0.0101834903854273"
+        izz="0.11923041156601" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/Link2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/Link2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Joint3"
+    type="revolute">
+    <origin
+      xyz="0 0.139900000000159 -0.0400000001857545"
+      rpy="0 0.505903627705821 1.5707963267949" />
+    <parent
+      link="Link 1" />
+    <child
+      link="Link2" />
+    <axis
+      xyz="0.278414243878095 -0.818486258677061 -0.502559203639348" />
+    <limit
+      lower="-3.21116396830774"
+      upper="0.0176951478784062"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link3">
+    <inertial>
+      <origin
+        xyz="0.469162459431449 0.0617178280249097 0.523960005828563"
+        rpy="0 0 0" />
+      <mass
+        value="2.8491383732411" />
+      <inertia
+        ixx="0.00687421856156753"
+        ixy="0.000270556599057382"
+        ixz="-0.000789713432372983"
+        iyy="0.00803841712789088"
+        iyz="-0.000321312807375764"
+        izz="0.00804491974513798" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/Link3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/Link3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Joint3"
+    type="revolute">
+    <origin
+      xyz="0 0 -0.44500000000011"
+      rpy="0 -0.174532925209884 0" />
+    <parent
+      link="Link2" />
+    <child
+      link="Link3" />
+    <axis
+      xyz="0.186916016033065 -0.818486258677062 -0.543270326179475" />
+    <limit
+      lower="-4.53785605520139"
+      upper="0"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link4">
+    <inertial>
+      <origin
+        xyz="-0.528381663971899 -0.74747090880881 0.0705036416957557"
+        rpy="0 0 0" />
+      <mass
+        value="2.75537963689922" />
+      <inertia
+        ixx="0.00784210085850593"
+        ixy="0.00287502711916222"
+        ixz="-0.00155954906536487"
+        iyy="0.00652813213716604"
+        iyz="0.00227513996233774"
+        izz="0.00958518190207358" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/Link4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/Link4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Join4"
+    type="revolute">
+    <origin
+      xyz="-0.42834 0 0.54879"
+      rpy="1.3963 0.66274 3.1416" />
+    <parent
+      link="Link3" />
+    <child
+      link="Link4" />
+    <axis
+      xyz="0.56376 -0.70768 0.42587" />
+    <limit
+      lower="-3.6003E-05"
+      upper="0.34903"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link5">
+    <inertial>
+      <origin
+        xyz="-0.387457972484124 -0.741508336522462 -0.469214356721276"
+        rpy="0 0 0" />
+      <mass
+        value="0.245886315588456" />
+      <inertia
+        ixx="0.000171509872455576"
+        ixy="2.93019019333019E-06"
+        ixz="-1.48934857156713E-05"
+        iyy="0.000147025048064152"
+        iyz="-1.27261901091405E-05"
+        izz="0.00016345189095606" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/Link5.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/Link5.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Join5"
+    type="revolute">
+    <origin
+      xyz="0.147419916833615 -0.140701218055117 -0.0402626432896059"
+      rpy="2.95152458230038 -0.288042848992229 1.98892089706031" />
+    <parent
+      link="Link4" />
+    <child
+      link="Link5" />
+    <axis
+      xyz="-0.693153009536865 -0.287991048249139 0.660757188003542" />
+    <limit
+      lower="-3.10101020929427"
+      upper="1.61137877109046"
+      effort="0"
+      velocity="0" />
+  </joint>
+  <link
+    name="Link6">
+    <inertial>
+      <origin
+        xyz="-0.773256421219435 0.626168125644925 -0.181374356297705"
+        rpy="0 0 0" />
+      <mass
+        value="0.0241915724295804" />
+      <inertia
+        ixx="5.44142434864806E-06"
+        ixy="1.48386736013185E-06"
+        ixz="-1.6953019004526E-07"
+        iyy="8.30653563780022E-06"
+        iyz="-3.91062032012329E-07"
+        izz="4.8792279433254E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/Link6.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://GP7 Robot.SLDASM/meshes/Link6.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="Joint6"
+    type="revolute">
+    <origin
+      xyz="0 0.05616 -0.015458"
+      rpy="-0.5691 0 1.5708" />
+    <parent
+      link="Link5" />
+    <child
+      link="Link6" />
+    <axis
+      xyz="-0.38882 -0.91544 0.10385" />
+    <limit
+      lower="-0.56735"
+      upper="5.7123"
+      effort="0"
+      velocity="0" />
+  </joint>
+</robot>
