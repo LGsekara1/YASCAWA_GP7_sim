@@ -1,0 +1,22 @@
+package.xml
+setup.cfg
+setup.py
+config/joint_names_GP7 Robot.SLDASM.yaml
+gp7robot_description/__init__.py
+gp7robot_description.egg-info/PKG-INFO
+gp7robot_description.egg-info/SOURCES.txt
+gp7robot_description.egg-info/dependency_links.txt
+gp7robot_description.egg-info/requires.txt
+gp7robot_description.egg-info/top_level.txt
+gp7robot_description.egg-info/zip-safe
+launch/display.launch.py
+meshes/Link 1.STL
+meshes/Link2.STL
+meshes/Link3.STL
+meshes/Link4.STL
+meshes/Link5.STL
+meshes/Link6.STL
+meshes/base_link.STL
+resource/gp7robot_description
+urdf/GP7.csv
+urdf/GP7.urdf
