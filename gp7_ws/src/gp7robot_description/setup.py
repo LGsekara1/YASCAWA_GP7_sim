@@ -11,10 +11,15 @@ data_files = [
     ('share/' + package_name, ['package.xml']),
 ]
 
-# Install launch files
+# Install launch files and the self-contained Gazebo assignment worlds.
 data_files.append(
-    (os.path.join('share', package_name, 'launch'),
-     glob('launch/*.py'))
+    (os.path.join('share', package_name, 'launch'), glob('launch/*.py'))
+)
+data_files.append(
+    (os.path.join('share', package_name, 'worlds'), glob('worlds/*.sdf'))
+)
+data_files.append(
+    (os.path.join('share', package_name, 'rviz'), glob('rviz/*.rviz'))
 )
 
 # Install all files in the robot description directories
@@ -31,14 +36,17 @@ setup(
     version='0.0.0',
     packages=find_packages(),
     data_files=data_files,
-    install_requires=['setuptools'],
+    install_requires=['setuptools', 'numpy'],
     zip_safe=True,
     maintainer='your_name',
     maintainer_email='your_email@example.com',
-    description='GP7 Robot description package',
+    description='GP7 robot model, kinematics, and Gazebo pick-and-place package',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': [],
+        'console_scripts': [
+            'gp7_pick_place = gp7robot_description.pick_place:main',
+            'gp7_move_joint = gp7robot_description.manual_joint:main',
+        ],
     },
 )

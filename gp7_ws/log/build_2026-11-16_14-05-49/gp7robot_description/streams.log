@@ -1,0 +1,20 @@
+[0.864s] Invoking command in '/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/install/gp7robot_description/lib/python3.14/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description/build --no-deps symlink_data
+[0.964s] /usr/lib/python3/dist-packages/setuptools/_distutils/dist.py:289: UserWarning: Unknown distribution option: 'tests_require'
+[0.964s]   warnings.warn(msg)
+[1.035s] running develop
+[1.123s] running egg_info
+[1.133s] writing gp7robot_description.egg-info/PKG-INFO
+[1.133s] writing dependency_links to gp7robot_description.egg-info/dependency_links.txt
+[1.133s] writing entry points to gp7robot_description.egg-info/entry_points.txt
+[1.133s] writing requirements to gp7robot_description.egg-info/requires.txt
+[1.133s] writing top-level names to gp7robot_description.egg-info/top_level.txt
+[1.153s] reading manifest file 'gp7robot_description.egg-info/SOURCES.txt'
+[1.154s] writing manifest file 'gp7robot_description.egg-info/SOURCES.txt'
+[1.165s] running build_ext
+[1.165s] Creating /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/install/gp7robot_description/lib/python3.14/site-packages/gp7robot-description.egg-link (link to .)
+[1.165s] Installing gp7_move_joint script to /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/install/gp7robot_description/lib/gp7robot_description
+[1.165s] Installing gp7_pick_place script to /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/install/gp7robot_description/lib/gp7robot_description
+[1.166s] 
+[1.166s] Installed /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description
+[1.166s] running symlink_data
+[1.190s] Invoked command in '/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description' returned '0': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/install/gp7robot_description/lib/python3.14/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description/build --no-deps symlink_data

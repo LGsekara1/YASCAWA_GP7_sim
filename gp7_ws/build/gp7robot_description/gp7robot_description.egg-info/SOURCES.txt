@@ -4,9 +4,14 @@ setup.py
 config/controllers.yaml
 config/joint_names_GP7 Robot.SLDASM.yaml
 gp7robot_description/__init__.py
+gp7robot_description/kinematics.py
+gp7robot_description/manual_joint.py
+gp7robot_description/pick_place.py
+gp7robot_description/trajectory.py
 gp7robot_description.egg-info/PKG-INFO
 gp7robot_description.egg-info/SOURCES.txt
 gp7robot_description.egg-info/dependency_links.txt
+gp7robot_description.egg-info/entry_points.txt
 gp7robot_description.egg-info/requires.txt
 gp7robot_description.egg-info/top_level.txt
 gp7robot_description.egg-info/zip-safe
@@ -20,5 +25,8 @@ meshes/Link5.STL
 meshes/Link6.STL
 meshes/base_link.STL
 resource/gp7robot_description
+rviz/gp7_frames.rviz
 urdf/GP7.csv
 urdf/GP7.urdf
+worlds/gp7_pick_place_reachable.sdf
+worlds/gp7_task_spec.sdf
