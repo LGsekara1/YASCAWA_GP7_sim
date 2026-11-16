@@ -1,6 +1,7 @@
 package.xml
 setup.cfg
 setup.py
+config/controllers.yaml
 config/joint_names_GP7 Robot.SLDASM.yaml
 gp7robot_description/__init__.py
 gp7robot_description.egg-info/PKG-INFO
@@ -10,6 +11,7 @@ gp7robot_description.egg-info/requires.txt
 gp7robot_description.egg-info/top_level.txt
 gp7robot_description.egg-info/zip-safe
 launch/display.launch.py
+launch/gazebo_sim.launch.py
 meshes/Link 1.STL
 meshes/Link2.STL
 meshes/Link3.STL
