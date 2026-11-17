@@ -5,9 +5,11 @@ Summary: GP7 robot model, kinematics, and Gazebo pick-and-place package
 Maintainer: your_name
 Maintainer-email: your_email@example.com
 License: Apache-2.0
+License-File: LICENSE
 Requires-Dist: setuptools
 Requires-Dist: numpy
 Dynamic: license
+Dynamic: license-file
 Dynamic: maintainer
 Dynamic: maintainer-email
 Dynamic: requires-dist

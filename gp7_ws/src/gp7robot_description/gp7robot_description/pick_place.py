@@ -55,6 +55,7 @@ class PickPlaceController(Node):
         self.declare_parameter("box_b_center_z", BOX_B_SIZE[2] / 2.0)
         self.declare_parameter("approach_height", 0.32)
         self.declare_parameter("lift_height", 0.35)
+        self.declare_parameter("transfer_height", 0.50)
         self.declare_parameter("speed_scale", SAFE_SPEED_SCALE)
         self.trajectory_publisher = self.create_publisher(
             JointTrajectory, "/model/GP7Robot/joint_trajectory", 10
@@ -141,6 +142,7 @@ class PickPlaceController(Node):
         )
         approach_height = float(self.get_parameter("approach_height").value)
         lift_height = float(self.get_parameter("lift_height").value)
+        transfer_height = float(self.get_parameter("transfer_height").value)
         destination = np.array(
             [box_a_x, box_a_y, box_a_top_z + BOX_B_SIZE[2] / 2.0], dtype=float
         )
@@ -162,18 +164,38 @@ class PickPlaceController(Node):
         self.get_logger().info("Box B remains upright; the fixed gripper frame is level throughout")
 
         start = np.zeros(6, dtype=float)
-        q_pick_hover = self._solve(pick_hover, UPRIGHT_REFERENCE_CONFIGURATION)
+        q_pick_hover_seed = self._solve(pick_hover, start)
+        q_raise = start.copy()
+        q_raise[1] = 0.35
+        q_joint1_above_box = q_raise.copy()
+        q_joint1_above_box[0] = q_pick_hover_seed[0]
+        # The IK solver can fail from the artificial intermediate joint pose
+        # even though the hover pose itself is reachable. Reuse the already
+        # solved hover configuration; the next segment moves from the joint-1
+        # rotation waypoint into that valid configuration.
+        q_pick_hover = q_pick_hover_seed
         q_pick = self._solve(pick_pose, q_pick_hover)
         q_lift = self._solve(lift_pose, q_pick)
-        q_place_hover = self._solve(place_hover, q_lift)
+        transfer_pose = box_b + np.array([0.0, 0.0, transfer_height]) + flange_offset
+        q_transfer_high = self._solve(transfer_pose, q_lift)
+        q_place_hover = self._solve(place_hover, UPRIGHT_REFERENCE_CONFIGURATION)
+        q_rotate_for_place = q_transfer_high.copy()
+        q_rotate_for_place[0] = q_place_hover[0]
         q_place = self._solve(place_pose, q_place_hover)
         q_retreat = self._solve(place_hover, q_place)
 
-        self._move(start, q_pick_hover, "hover above Box B")
+        self._move(start, q_raise, "raise arm for clearance")
+        self.get_logger().info(
+            f"Joint 1 target above Box B: {math.degrees(q_joint1_above_box[0]):.1f} degrees"
+        )
+        self._move(q_raise, q_joint1_above_box, "rotate only joint 1 above Box B")
+        self._move(q_joint1_above_box, q_pick_hover, "move to Box B approach")
         self._move(q_pick_hover, q_pick, "lower to Box B")
         self._gripper_signal(self.attach_publisher, "attach")
         self._move(q_pick, q_lift, "lift Box B")
-        self._move(q_lift, q_place_hover, "carry above Box A")
+        self._move(q_lift, q_transfer_high, "raise Box B for transfer")
+        self._move(q_transfer_high, q_rotate_for_place, "rotate toward Box A at clearance")
+        self._move(q_rotate_for_place, q_place_hover, "align above Box A")
         self._move(q_place_hover, q_place, "lower Box B onto Box A")
         self._gripper_signal(self.detach_publisher, "release")
         self._move(q_place, q_retreat, "retreat")
