@@ -54,7 +54,8 @@ class PickPlaceController(Node):
         self.declare_parameter("box_b_y", 0.25)
         self.declare_parameter("box_b_center_z", BOX_B_SIZE[2] / 2.0)
         self.declare_parameter("approach_height", 0.32)
-        self.declare_parameter("lift_height", 0.35)
+        self.declare_parameter("place_approach_height", 0.32)
+        self.declare_parameter("lift_height", 0.32)
         self.declare_parameter("transfer_height", 0.50)
         self.declare_parameter("speed_scale", SAFE_SPEED_SCALE)
         self.trajectory_publisher = self.create_publisher(
@@ -141,6 +142,7 @@ class PickPlaceController(Node):
             dtype=float,
         )
         approach_height = float(self.get_parameter("approach_height").value)
+        place_approach_height = float(self.get_parameter("place_approach_height").value)
         lift_height = float(self.get_parameter("lift_height").value)
         transfer_height = float(self.get_parameter("transfer_height").value)
         destination = np.array(
@@ -153,7 +155,7 @@ class PickPlaceController(Node):
         pick_hover = box_b + np.array([0.0, 0.0, approach_height]) + flange_offset
         pick_pose = box_b + flange_offset
         lift_pose = box_b + np.array([0.0, 0.0, lift_height]) + flange_offset
-        place_hover = destination + np.array([0.0, 0.0, approach_height]) + flange_offset
+        place_hover = destination + np.array([0.0, 0.0, place_approach_height]) + flange_offset
         place_pose = destination + flange_offset
 
         self.get_logger().info(
@@ -162,6 +164,9 @@ class PickPlaceController(Node):
             f"Box B start ({box_b[0]:.3f}, {box_b[1]:.3f}, {box_b[2]:.3f}) m"
         )
         self.get_logger().info("Box B remains upright; the fixed gripper frame is level throughout")
+        self.get_logger().info(
+            f"Place approach is {place_approach_height:.2f} m above the Box A top"
+        )
 
         start = np.zeros(6, dtype=float)
         q_pick_hover_seed = self._solve(pick_hover, start)
@@ -178,9 +183,14 @@ class PickPlaceController(Node):
         q_lift = self._solve(lift_pose, q_pick)
         transfer_pose = box_b + np.array([0.0, 0.0, transfer_height]) + flange_offset
         q_transfer_high = self._solve(transfer_pose, q_lift)
-        q_place_hover = self._solve(place_hover, UPRIGHT_REFERENCE_CONFIGURATION)
-        q_rotate_for_place = q_transfer_high.copy()
-        q_rotate_for_place[0] = q_place_hover[0]
+        # Select the placement-side IK branch at the transfer point, then
+        # carry to the destination with the complete joint configuration.
+        # Rotating only joint 1 here swings the gripper around the opposite
+        # side of the base before it can move toward Box A.
+        q_transfer_place_branch = self._solve(
+            transfer_pose, UPRIGHT_REFERENCE_CONFIGURATION
+        )
+        q_place_hover = self._solve(place_hover, q_transfer_place_branch)
         q_place = self._solve(place_pose, q_place_hover)
         q_retreat = self._solve(place_hover, q_place)
 
@@ -194,8 +204,12 @@ class PickPlaceController(Node):
         self._gripper_signal(self.attach_publisher, "attach")
         self._move(q_pick, q_lift, "lift Box B")
         self._move(q_lift, q_transfer_high, "raise Box B for transfer")
-        self._move(q_transfer_high, q_rotate_for_place, "rotate toward Box A at clearance")
-        self._move(q_rotate_for_place, q_place_hover, "align above Box A")
+        self._move(
+            q_transfer_high,
+            q_transfer_place_branch,
+            "reconfigure at the raised transfer point",
+        )
+        self._move(q_transfer_place_branch, q_place_hover, "move to 0.32 m above Box A")
         self._move(q_place_hover, q_place, "lower Box B onto Box A")
         self._gripper_signal(self.detach_publisher, "release")
         self._move(q_place, q_retreat, "retreat")
