@@ -97,7 +97,7 @@ def _simulation_robot_description(urdf_path):
     ET.SubElement(gripper_mount, "parent", link="Link6")
     ET.SubElement(gripper_mount, "child", link="gp7_gripper")
 
-    for name, offset in (("gp7_left_finger", "-0.0325 0 0.025"), ("gp7_right_finger", "0.0325 0 0.025")):
+    for name, offset in (("gp7_left_finger", "-0.0325 0 0.025"), ("gp7_right_finger", "0.0375 0 0.025")):
         finger = ET.SubElement(root, "link", name=name)
         _add_inertial(finger, 0.05, 0.00005)
         _add_finger_geometry(finger, name)
@@ -138,11 +138,13 @@ def _simulation_robot_description(urdf_path):
     )
     # URDF-to-SDF conversion may merge fixed joints. Link6 is always preserved,
     # and the detachable system records the current relative grasp transform.
+    
     ET.SubElement(detachable, "parent_link").text = "Link6"
     ET.SubElement(detachable, "child_model").text = "BoxB"
     ET.SubElement(detachable, "child_link").text = "link"
     ET.SubElement(detachable, "attach_topic").text = "/gp7/gripper/attach"
     ET.SubElement(detachable, "detach_topic").text = "/gp7/gripper/detach"
+    
 
     return ET.tostring(root, encoding="unicode")
 
@@ -202,6 +204,12 @@ def generate_launch_description():
         output="screen",
     )
 
+    pick_place = Node(
+        package="gp7robot_description",
+        executable="gp7_pick_place",
+        output="screen",
+    )
+
     resource_paths = [os.path.dirname(package_path)]
     existing_resource_paths = os.environ.get("GZ_SIM_RESOURCE_PATH", "")
     if existing_resource_paths:
@@ -219,5 +227,6 @@ def generate_launch_description():
             gazebo,
             bridge,
             TimerAction(period=5.0, actions=[spawn_robot]),
+            TimerAction(period=10.0, actions=[pick_place]),
         ]
     )

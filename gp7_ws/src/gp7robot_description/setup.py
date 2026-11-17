@@ -47,6 +47,7 @@ setup(
         'console_scripts': [
             'gp7_pick_place = gp7robot_description.pick_place:main',
             'gp7_move_joint = gp7robot_description.manual_joint:main',
+            "gp7_reset_world = gp7robot_description.reset_world:main",
         ],
     },
 )

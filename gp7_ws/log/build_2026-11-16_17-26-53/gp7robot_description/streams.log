@@ -1,0 +1,18 @@
+[0.690s] Invoking command in '/home/lakindugunasekara/YASCAWA_GP7_sim-sithum/gp7_ws/build/gp7robot_description': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/lakindugunasekara/YASCAWA_GP7_sim-sithum/gp7_ws/build/gp7robot_description/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/lakindugunasekara/YASCAWA_GP7_sim-sithum/gp7_ws/install/gp7robot_description/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/lakindugunasekara/YASCAWA_GP7_sim-sithum/gp7_ws/build/gp7robot_description/build --no-deps symlink_data
+[0.896s] running develop
+[0.997s] running egg_info
+[1.006s] writing gp7robot_description.egg-info/PKG-INFO
+[1.006s] writing dependency_links to gp7robot_description.egg-info/dependency_links.txt
+[1.007s] writing entry points to gp7robot_description.egg-info/entry_points.txt
+[1.007s] writing requirements to gp7robot_description.egg-info/requires.txt
+[1.007s] writing top-level names to gp7robot_description.egg-info/top_level.txt
+[1.026s] reading manifest file 'gp7robot_description.egg-info/SOURCES.txt'
+[1.027s] writing manifest file 'gp7robot_description.egg-info/SOURCES.txt'
+[1.037s] running build_ext
+[1.037s] Creating /home/lakindugunasekara/YASCAWA_GP7_sim-sithum/gp7_ws/install/gp7robot_description/lib/python3.12/site-packages/gp7robot-description.egg-link (link to .)
+[1.037s] Installing gp7_move_joint script to /home/lakindugunasekara/YASCAWA_GP7_sim-sithum/gp7_ws/install/gp7robot_description/lib/gp7robot_description
+[1.037s] Installing gp7_pick_place script to /home/lakindugunasekara/YASCAWA_GP7_sim-sithum/gp7_ws/install/gp7robot_description/lib/gp7robot_description
+[1.037s] 
+[1.037s] Installed /home/lakindugunasekara/YASCAWA_GP7_sim-sithum/gp7_ws/build/gp7robot_description
+[1.037s] running symlink_data
+[1.056s] Invoked command in '/home/lakindugunasekara/YASCAWA_GP7_sim-sithum/gp7_ws/build/gp7robot_description' returned '0': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/lakindugunasekara/YASCAWA_GP7_sim-sithum/gp7_ws/build/gp7robot_description/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/lakindugunasekara/YASCAWA_GP7_sim-sithum/gp7_ws/install/gp7robot_description/lib/python3.12/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py develop --editable --build-directory /home/lakindugunasekara/YASCAWA_GP7_sim-sithum/gp7_ws/build/gp7robot_description/build --no-deps symlink_data

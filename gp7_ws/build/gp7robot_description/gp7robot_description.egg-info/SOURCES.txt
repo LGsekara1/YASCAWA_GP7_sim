@@ -7,6 +7,7 @@ gp7robot_description/__init__.py
 gp7robot_description/kinematics.py
 gp7robot_description/manual_joint.py
 gp7robot_description/pick_place.py
+gp7robot_description/reset_world.py
 gp7robot_description/trajectory.py
 gp7robot_description.egg-info/PKG-INFO
 gp7robot_description.egg-info/SOURCES.txt

@@ -53,6 +53,7 @@
 
     <!-- Box B starts at a fixed reachable location so the demo is repeatable. -->
     <model name="BoxB">
+      
       <pose>0.35 0.25 0.025 0 0 0</pose>
       <link name="link">
         <inertial>

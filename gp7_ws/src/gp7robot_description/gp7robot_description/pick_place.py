@@ -53,7 +53,8 @@ class PickPlaceController(Node):
         self.declare_parameter("box_b_x", 0.35)
         self.declare_parameter("box_b_y", 0.25)
         self.declare_parameter("box_b_center_z", BOX_B_SIZE[2] / 2.0)
-        self.declare_parameter("approach_height", 0.15)
+        self.declare_parameter("approach_height", 0.32)
+        self.declare_parameter("lift_height", 0.35)
         self.declare_parameter("speed_scale", SAFE_SPEED_SCALE)
         self.trajectory_publisher = self.create_publisher(
             JointTrajectory, "/model/GP7Robot/joint_trajectory", 10
@@ -64,7 +65,10 @@ class PickPlaceController(Node):
     def _wait_for_bridge(self) -> bool:
         deadline = time.monotonic() + 15.0
         while rclpy.ok() and time.monotonic() < deadline:
-            if self.trajectory_publisher.get_subscription_count() > 0:
+            if (
+                self.trajectory_publisher.get_subscription_count() > 0
+                and self.detach_publisher.get_subscription_count() > 0
+            ):
                 return True
             rclpy.spin_once(self, timeout_sec=0.1)
         self.get_logger().error("Gazebo bridge did not subscribe to the joint trajectory topic")
@@ -111,17 +115,19 @@ class PickPlaceController(Node):
             rclpy.spin_once(self, timeout_sec=0.01)
         return goal
 
-    def _gripper_signal(self, publisher, action: str) -> None:
-        publisher.publish(Empty())
+    def _gripper_signal(self, publisher, action: str, repeats: int = 1) -> None:
         self.get_logger().info(f"Gripper {action}")
-        end_time = time.monotonic() + 0.25
-        while rclpy.ok() and time.monotonic() < end_time:
-            rclpy.spin_once(self, timeout_sec=0.01)
+        for _ in range(repeats):
+            publisher.publish(Empty())
+            end_time = time.monotonic() + 0.25
+            while rclpy.ok() and time.monotonic() < end_time:
+                rclpy.spin_once(self, timeout_sec=0.01)
 
     def run_demo(self) -> None:
         if not self._wait_for_bridge():
             return
 
+        self._gripper_signal(self.detach_publisher, "initial release", repeats=3)
         box_a_x = float(self.get_parameter("box_a_x").value)
         box_a_y = float(self.get_parameter("box_a_y").value)
         box_a_top_z = float(self.get_parameter("box_a_top_z").value)
@@ -134,6 +140,7 @@ class PickPlaceController(Node):
             dtype=float,
         )
         approach_height = float(self.get_parameter("approach_height").value)
+        lift_height = float(self.get_parameter("lift_height").value)
         destination = np.array(
             [box_a_x, box_a_y, box_a_top_z + BOX_B_SIZE[2] / 2.0], dtype=float
         )
@@ -143,6 +150,7 @@ class PickPlaceController(Node):
         flange_offset = np.array([0.0, 0.0, GRIPPER_LINK_OFFSET])
         pick_hover = box_b + np.array([0.0, 0.0, approach_height]) + flange_offset
         pick_pose = box_b + flange_offset
+        lift_pose = box_b + np.array([0.0, 0.0, lift_height]) + flange_offset
         place_hover = destination + np.array([0.0, 0.0, approach_height]) + flange_offset
         place_pose = destination + flange_offset
 
@@ -156,7 +164,7 @@ class PickPlaceController(Node):
         start = np.zeros(6, dtype=float)
         q_pick_hover = self._solve(pick_hover, UPRIGHT_REFERENCE_CONFIGURATION)
         q_pick = self._solve(pick_pose, q_pick_hover)
-        q_lift = self._solve(pick_hover, q_pick)
+        q_lift = self._solve(lift_pose, q_pick)
         q_place_hover = self._solve(place_hover, q_lift)
         q_place = self._solve(place_pose, q_place_hover)
         q_retreat = self._solve(place_hover, q_place)
@@ -169,6 +177,7 @@ class PickPlaceController(Node):
         self._move(q_place_hover, q_place, "lower Box B onto Box A")
         self._gripper_signal(self.detach_publisher, "release")
         self._move(q_place, q_retreat, "retreat")
+        self._move(q_retreat, start, "return to home")
         self.get_logger().info("Pick-and-place sequence completed")
 
 
