@@ -63,6 +63,9 @@ JOINT_LIMITS = np.array(
 # Joint maximum speeds from the GP7 column of the supplied GP7/GP8 datasheet.
 MAX_JOINT_SPEEDS = np.deg2rad(np.array([375.0, 315.0, 410.0, 550.0, 550.0, 1000.0]))
 
+# Conservative joint acceleration limits (rad/s^2) used for planned moves.
+ACCELERATION_LIMITS = np.array([0.45, 0.45, 0.55, 0.80, 0.80, 1.00])
+
 # Reference pose that defines the gripper mount and the "upright" Link6
 # orientation. In this pose the flange points straight down above Box B
 # (flange at 0.35, 0.25, 0.42 m), so the gripper is mounted coaxially with the

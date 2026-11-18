@@ -6,7 +6,7 @@ Motion plan
    above Box B on the "upright" IK branch.
 2. Every motion while the gripper is near or holding Box B is a straight
    Cartesian line with the Link6 orientation held constant. The path
-   parameter follows a trapezoidal velocity profile and inverse kinematics
+   parameter follows a S-curve velocity profile and inverse kinematics
    is solved at every sample, so Box B stays upright for the whole motion.
 3. After release the arm retreats vertically and returns home.
 """
@@ -18,13 +18,13 @@ import time
 
 import numpy as np
 import rclpy
-from builtin_interfaces.msg import Duration
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Empty
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from trajectory_msgs.msg import JointTrajectory
 
 from .kinematics import (
+    ACCELERATION_LIMITS,
     JOINT_NAMES,
     MAX_JOINT_SPEEDS,
     UPRIGHT_REFERENCE_CONFIGURATION,
@@ -33,14 +33,22 @@ from .kinematics import (
     inverse_kinematics,
     pose,
 )
-from .trajectory import TrajectorySample, trapezoidal_segment
+from .trajectory import (
+    TrajectorySample,
+    joint_trajectory_message,
+    scurve_segment,
+    superpose,
+)
 
 
 MAX_HORIZONTAL_REACH = 0.927
 BOX_B_SIZE = (0.05, 0.05, 0.05)
 GRIPPER_LINK_OFFSET = 0.075
 SAFE_SPEED_SCALE = 0.15
-SAMPLE_PERIOD = 0.02
+# Gazebo's JointTrajectoryController does not interpolate between points: the
+# setpoint steps to each point in turn, and the PID D term turns every step
+# into a torque spike. Dense sampling (5 physics steps) keeps steps tiny.
+SAMPLE_PERIOD = 0.005
 # Settled when every joint is within this of its goal for SETTLE_TIME seconds.
 WAYPOINT_TOLERANCE = math.radians(2.0)
 SETTLE_TIME = 0.25
@@ -52,17 +60,13 @@ MAX_JOINT6_ERROR = math.radians(15.0)
 # Largest joint change allowed between two Cartesian samples; a bigger jump
 # means IK switched branch and the box would swing.
 MAX_IK_STEP = math.radians(5.0)
-ACCELERATION_LIMITS = np.array([0.45, 0.45, 0.55, 0.80, 0.80, 1.00])
+# When chaining moves without a gripper action between them, the next move
+# starts once the previous one has begun to decelerate (the S-curve's last
+# third), so the arm rounds the corner instead of stopping.
+BLEND_START_FRACTION = 2.0 / 3.0
+IK_POSITION_TOLERANCE = 1.0e-5
+IK_ORIENTATION_TOLERANCE = 1.0e-4
 UPRIGHT_LINK6_ROTATION = forward_kinematics(UPRIGHT_REFERENCE_CONFIGURATION)[:3, :3]
-
-
-def _duration_message(seconds: float) -> Duration:
-    whole_seconds = int(seconds)
-    nanoseconds = int(round((seconds - whole_seconds) * 1_000_000_000))
-    if nanoseconds >= 1_000_000_000:
-        whole_seconds += 1
-        nanoseconds -= 1_000_000_000
-    return Duration(sec=whole_seconds, nanosec=nanoseconds)
 
 
 class PickPlaceController(Node):
@@ -77,14 +81,11 @@ class PickPlaceController(Node):
         self.declare_parameter("box_b_x", 0.35)
         self.declare_parameter("box_b_y", 0.25)
         self.declare_parameter("box_b_center_z", BOX_B_SIZE[2] / 2.0)
-        self.declare_parameter("approach_height", 0.32)
         # Height above Box B for the initial lift and the joint-1 rotation;
         # keeps the arm well above Box A (top at 0.20 m).
         self.declare_parameter("clearance_height", 0.55)
-        # Step 1 lifts the arm by rotating joint 3 by this many degrees.
-        self.declare_parameter("joint3_lift_deg", 30.0)
-        self.declare_parameter("place_approach_height", 0.32)
-        self.declare_parameter("lift_height", 0.32)
+        # How far the empty gripper rises straight up after releasing Box B.
+        self.declare_parameter("retreat_height", 0.10)
         self.declare_parameter("speed_scale", SAFE_SPEED_SCALE)
         # Cartesian (tool) speed and acceleration limits for upright moves.
         self.declare_parameter("cartesian_speed", 0.10)
@@ -172,18 +173,26 @@ class PickPlaceController(Node):
                 f"horizontal reach is {MAX_HORIZONTAL_REACH:.3f} m"
             )
         target = pose(xyz, UPRIGHT_LINK6_ROTATION)
-        return inverse_kinematics(target, seed)
+        # Tight tolerances: with the default (3 mm / 2 deg) a seeded solve
+        # often returns the seed unchanged, so densely sampled paths become
+        # a staircase of stalls and jumps instead of a smooth line.
+        return inverse_kinematics(
+            target,
+            seed,
+            position_tolerance=IK_POSITION_TOLERANCE,
+            orientation_tolerance=IK_ORIENTATION_TOLERANCE,
+        )
 
     # ----------------------------------------------------------- trajectories
 
     def _joint_trajectory(
         self, start: np.ndarray, goal: np.ndarray
     ) -> list[TrajectorySample]:
-        """Synchronised trapezoidal joint-space profile (box not held)."""
+        """Synchronised S-curve joint-space profile (box not held)."""
         scale = float(self.get_parameter("speed_scale").value)
         if not 0.0 < scale <= 1.0:
             raise ValueError("speed_scale must be greater than 0 and at most 1")
-        return trapezoidal_segment(
+        return scurve_segment(
             start,
             goal,
             MAX_JOINT_SPEEDS * scale,
@@ -194,21 +203,32 @@ class PickPlaceController(Node):
     def _cartesian_trajectory(
         self, q_start: np.ndarray, p_start: np.ndarray, p_goal: np.ndarray
     ) -> list[TrajectorySample]:
-        """Straight-line, constant-orientation path with a trapezoidal profile.
+        """Straight-line, constant-orientation path with an S-curve profile."""
+        return self._cartesian_path(q_start, [p_start, p_goal])
 
-        The scalar path length s(t) follows a trapezoidal velocity profile in
-        Cartesian space; IK is solved at every sample (seeded by the previous
+    def _cartesian_path(
+        self, q_start: np.ndarray, waypoints: list[np.ndarray]
+    ) -> list[TrajectorySample]:
+        """Straight Cartesian legs, blended, with the gripper kept upright.
+
+        Each leg's length follows an S-curve velocity profile. With more than
+        one leg, the next leg starts as soon as the previous one begins to
+        decelerate (see ``superpose``), so the arm rounds the corner without
+        stopping. IK is solved at every sample (seeded by the previous
         solution) with the upright Link6 orientation, so the box never tilts.
         Joint velocities are the finite differences of the IK solutions. If
         any joint would exceed its speed limit the whole profile is slowed.
         """
-        length = float(np.linalg.norm(p_goal - p_start))
-        if length < 1.0e-6:
+        waypoints = [np.asarray(p, dtype=float) for p in waypoints]
+        legs = [
+            (a, b) for a, b in zip(waypoints[:-1], waypoints[1:])
+            if np.linalg.norm(b - a) >= 1.0e-6
+        ]
+        if not legs:
             return [
                 TrajectorySample(0.0, q_start.copy(), np.zeros(6)),
                 TrajectorySample(SAMPLE_PERIOD, q_start.copy(), np.zeros(6)),
             ]
-        direction = (p_goal - p_start) / length
         speed = float(self.get_parameter("cartesian_speed").value)
         accel = float(self.get_parameter("cartesian_acceleration").value)
         joint_speed_limits = MAX_JOINT_SPEEDS * float(
@@ -216,20 +236,38 @@ class PickPlaceController(Node):
         )
 
         for _ in range(6):
-            profile = trapezoidal_segment(
-                [0.0], [length], [speed], [accel], sample_period=SAMPLE_PERIOD
-            )
-            times = np.array([sample.time_from_start for sample in profile])
-            distances = np.array([sample.positions[0] for sample in profile])
+            segments = []
+            for a, b in legs:
+                length = float(np.linalg.norm(b - a))
+                direction = (b - a) / length
+                profile = scurve_segment(
+                    [0.0], [length], [speed], [accel], sample_period=SAMPLE_PERIOD
+                )
+                segments.append([
+                    TrajectorySample(
+                        s.time_from_start,
+                        a + direction * s.positions[0],
+                        direction * s.velocities[0],
+                    )
+                    for s in profile
+                ])
+            start_times = [0.0]
+            for segment in segments[:-1]:
+                start_times.append(
+                    start_times[-1] + BLEND_START_FRACTION * segment[-1].time_from_start
+                )
+            path = superpose(segments, start_times, sample_period=SAMPLE_PERIOD)
+            times = np.array([sample.time_from_start for sample in path])
+            points = [sample.positions for sample in path]
 
             q = q_start.copy()
             joints = [q.copy()]
-            for distance in distances[1:]:
-                q_next = self._solve(p_start + direction * distance, q)
+            for point in points[1:]:
+                q_next = self._solve(point, q)
                 if np.max(np.abs(q_next - q)) > MAX_IK_STEP:
                     raise ValueError(
                         "IK branch switch on the upright Cartesian path at "
-                        f"{(p_start + direction * distance).round(3)}"
+                        f"{point.round(3)}"
                     )
                 q = q_next
                 joints.append(q.copy())
@@ -255,19 +293,13 @@ class PickPlaceController(Node):
         self, samples: list[TrajectorySample], goal: np.ndarray, label: str
     ) -> np.ndarray:
         """Publish a trajectory and wait until Gazebo reaches its end point."""
-        message = JointTrajectory()
-        message.joint_names = list(JOINT_NAMES)
-        message.header.stamp = self.get_clock().now().to_msg()
-        for sample in samples:
-            point = JointTrajectoryPoint()
-            point.positions = [float(v) for v in sample.positions]
-            point.velocities = [float(v) for v in sample.velocities]
-            point.time_from_start = _duration_message(sample.time_from_start)
-            message.points.append(point)
+        message = joint_trajectory_message(
+            JOINT_NAMES, samples, self.get_clock().now().to_msg()
+        )
         duration = samples[-1].time_from_start
 
         self.get_logger().info(
-            f"Moving: {label} ({duration:.2f} s trapezoidal profile)"
+            f"Moving: {label} ({duration:.2f} s S-curve profile)"
         )
         self.trajectory_publisher.publish(message)
 
@@ -278,10 +310,14 @@ class PickPlaceController(Node):
             rclpy.spin_once(self, timeout_sec=0.01)
             if self.current_joint_positions is None:
                 continue
-            last_error = float(
-                np.max(np.abs(self.current_joint_positions - goal))
-            )
-            if last_error <= WAYPOINT_TOLERANCE:
+            joint_error = np.abs(self.current_joint_positions - goal)
+            last_error = float(np.max(joint_error))
+            # Joint 6 only yaws the (still upright) box, so it uses its own
+            # allowance; this stops a lagging joint 6 from causing a pause.
+            if (
+                float(np.max(joint_error[:5])) <= WAYPOINT_TOLERANCE
+                and float(joint_error[5]) <= MAX_JOINT6_ERROR
+            ):
                 if settled_since is None:
                     settled_since = self._sim_now()
                 elif self._sim_now() - settled_since >= SETTLE_TIME:
@@ -319,7 +355,12 @@ class PickPlaceController(Node):
         p_goal: np.ndarray,
         label: str,
     ) -> np.ndarray:
-        samples = self._cartesian_trajectory(q_start, p_start, p_goal)
+        return self._move_path(q_start, [p_start, p_goal], label)
+
+    def _move_path(
+        self, q_start: np.ndarray, waypoints: list[np.ndarray], label: str
+    ) -> np.ndarray:
+        samples = self._cartesian_path(q_start, waypoints)
         goal = samples[-1].positions
         return self._execute(samples, goal, f"{label} (upright line)")
 
@@ -344,25 +385,12 @@ class PickPlaceController(Node):
             ],
             dtype=float,
         )
-        approach_height = float(self.get_parameter("approach_height").value)
-        place_approach_height = float(
-            self.get_parameter("place_approach_height").value
-        )
-        lift_height = float(self.get_parameter("lift_height").value)
-
         # Link6 is 75 mm above the detachable gripper frame / Box B centre.
         flange_offset = np.array([0.0, 0.0, GRIPPER_LINK_OFFSET])
-        pick_hover = box_b + np.array([0.0, 0.0, approach_height]) + flange_offset
         pick_pose = box_b + flange_offset
-        lift_pose = box_b + np.array([0.0, 0.0, lift_height]) + flange_offset
 
         destination = np.array(
             [box_a_x, box_a_y, box_a_top_z + BOX_B_SIZE[2] / 2.0], dtype=float
-        )
-        place_hover = (
-            destination
-            + np.array([0.0, 0.0, place_approach_height])
-            + flange_offset
         )
         place_pose = destination + flange_offset
 
@@ -391,19 +419,29 @@ class PickPlaceController(Node):
         # 1) Lift the arm: swing joint 3 (with the wrist joints) up into the
         #    arm shape of q_clear while joint 1 stays at home. The arm stays
         #    high, well above Box A.
+        # 2) Rotate only joint 1 until the arm faces Box B; the gripper ends
+        #    directly above the box. The rotation starts once the lift is
+        #    decelerating (about 75 % lifted), so the two blend without a stop.
         q_lift = q_clear.copy()
         q_lift[0] = start[0]
-        q = self._move_joint(start, q_lift, "lift arm (joint 3)")
-
-        # 2) Rotate only joint 1 until the arm faces Box B; the gripper ends
-        #    directly above the box.
+        lift = self._joint_trajectory(start, q_lift)
+        rotate = self._joint_trajectory(q_lift, q_clear)
         self.get_logger().info(
-            f"Rotating joint 1 to {math.degrees(q_clear[0]):.1f} deg to face Box B"
+            f"Lifting, then rotating joint 1 to {math.degrees(q_clear[0]):.1f} "
+            "deg to face Box B"
         )
-        q = self._move_joint(q, q_clear, "rotate joint 1 to face Box B")
+        q = self._execute(
+            superpose(
+                [lift, rotate],
+                [0.0, BLEND_START_FRACTION * lift[-1].time_from_start],
+                sample_period=SAMPLE_PERIOD,
+            ),
+            q_clear,
+            "lift arm and rotate joint 1 to face Box B",
+        )
 
         # 3) Path planning to the box: straight vertical line, gripper kept
-        #    upright, trapezoidal speed, IK solved at every sample.
+        #    upright, S-curve speed, IK solved at every sample.
         q = self._move_line(q, clear_pose, pick_pose, "lower to Box B")
 
         # 4) Grab Box B.
@@ -411,31 +449,30 @@ class PickPlaceController(Node):
         self.get_logger().info("Box B grabbed")
 
         # 5) Raise Box B: straight vertical line back up to the high pose,
-        #    gripper (and box) kept upright, then stop and hold.
-        q = self._move_line(q, pick_pose, clear_pose, "raise Box B")
-        self.get_logger().info("Box B raised")
-
-        # 6) Carry Box B to the centre of Box A. Plan first: a horizontal
-        #    straight line at the raised height to above Box A's centre, then
-        #    a vertical line down until Box B sits on Box A's top surface.
+        #    gripper (and box) kept upright.
+        # 6) Carry Box B to the centre of Box A: a horizontal straight line
+        #    at the raised height to above Box A's centre, then a vertical
+        #    line down until Box B sits on Box A's top surface. The three
+        #    legs are blended (rounded corners, no stops); the final part of
+        #    the descent is purely vertical.
         above_box_a = np.array([destination[0], destination[1], clear_pose[2]])
         # Release Box B 5 mm above Box A's top so the arm never presses the
         # box into Box A; it settles onto the surface under gravity.
         release_pose = place_pose + np.array([0.0, 0.0, 0.005])
-        q_check = self._cartesian_trajectory(q, clear_pose, above_box_a)[-1].positions
-        self._cartesian_trajectory(q_check, above_box_a, release_pose)
-        self.get_logger().info("Path to the centre of Box A planned and validated")
-
-        q = self._move_line(q, clear_pose, above_box_a, "carry Box B above Box A")
-        q = self._move_line(
-            q, above_box_a, release_pose, "lower Box B vertically onto Box A"
+        q = self._move_path(
+            q,
+            [pick_pose, clear_pose, above_box_a, release_pose],
+            "raise Box B, carry it above Box A and lower it onto Box A",
         )
 
-        # 7) Release Box B on Box A, then lift the empty gripper straight up
-        #    and stop.
+        # 7) Release Box B on Box A, let it settle, then lift the empty
+        #    gripper a little straight up and stop.
         self._gripper_signal(self.detach_publisher, "release", repeats=3)
+        self._sleep(0.5)
         self.get_logger().info("Box B placed at the centre of Box A")
-        self._move_line(q, release_pose, above_box_a, "retreat from Box A")
+        retreat_height = float(self.get_parameter("retreat_height").value)
+        retreat_pose = release_pose + np.array([0.0, 0.0, retreat_height])
+        self._move_line(q, release_pose, retreat_pose, "lift gripper off Box B")
         self.get_logger().info("Done; stopping here")
 
 

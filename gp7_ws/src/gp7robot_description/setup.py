@@ -36,7 +36,7 @@ setup(
     version='0.0.0',
     packages=find_packages(),
     data_files=data_files,
-    install_requires=['setuptools', 'numpy'],
+    install_requires=['setuptools', 'numpy', 'matplotlib'],
     zip_safe=True,
     maintainer='your_name',
     maintainer_email='your_email@example.com',
@@ -47,7 +47,8 @@ setup(
         'console_scripts': [
             'gp7_pick_place = gp7robot_description.pick_place:main',
             'gp7_move_joint = gp7robot_description.manual_joint:main',
-            "gp7_reset_world = gp7robot_description.reset_world:main",
+            'gp7_reset_world = gp7robot_description.reset_world:main',
+            'gp7_gui = gp7robot_description.gui:main',
         ],
     },
 )

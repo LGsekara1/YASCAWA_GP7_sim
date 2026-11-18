@@ -7,13 +7,14 @@ import math
 import sys
 import time
 
+import numpy as np
 import rclpy
-from builtin_interfaces.msg import Duration
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from trajectory_msgs.msg import JointTrajectory
 
 from .kinematics import JOINT_LIMITS, JOINT_NAMES
+from .trajectory import TrajectorySample, joint_trajectory_message
 
 
 class ManualJointCommander(Node):
@@ -67,20 +68,11 @@ class ManualJointCommander(Node):
         goal = start.copy()
         goal[index] = target
 
-        whole_seconds = int(duration)
-        nanoseconds = int(round((duration - whole_seconds) * 1_000_000_000))
-        if nanoseconds >= 1_000_000_000:
-            whole_seconds += 1
-            nanoseconds -= 1_000_000_000
-
-        trajectory = JointTrajectory()
-        trajectory.header.stamp = self.get_clock().now().to_msg()
-        trajectory.joint_names = list(JOINT_NAMES)
-        point = JointTrajectoryPoint()
-        point.positions = goal
-        point.velocities = [0.0] * len(JOINT_NAMES)
-        point.time_from_start = Duration(sec=whole_seconds, nanosec=nanoseconds)
-        trajectory.points = [point]
+        trajectory = joint_trajectory_message(
+            JOINT_NAMES,
+            [TrajectorySample(duration, np.array(goal), np.zeros(len(JOINT_NAMES)))],
+            self.get_clock().now().to_msg(),
+        )
         self.trajectory_publisher.publish(trajectory)
 
         self.get_logger().info(

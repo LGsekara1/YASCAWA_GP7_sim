@@ -7,26 +7,17 @@ import time
 
 import numpy as np
 import rclpy
-from builtin_interfaces.msg import Duration
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Empty
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from trajectory_msgs.msg import JointTrajectory
 
-from .kinematics import JOINT_NAMES, MAX_JOINT_SPEEDS
-from .trajectory import trapezoidal_segment
+from .kinematics import ACCELERATION_LIMITS, JOINT_NAMES, MAX_JOINT_SPEEDS
+from .trajectory import joint_trajectory_message, scurve_segment
 
-ACCELERATION_LIMITS = np.array([0.45, 0.45, 0.55, 0.80, 0.80, 1.00])
 SAFE_SPEED_SCALE = 0.20
-
-
-def _duration_message(seconds: float) -> Duration:
-    whole_seconds = int(seconds)
-    nanoseconds = int(round((seconds - whole_seconds) * 1_000_000_000))
-    if nanoseconds >= 1_000_000_000:
-        whole_seconds += 1
-        nanoseconds -= 1_000_000_000
-    return Duration(sec=whole_seconds, nanosec=nanoseconds)
+# Dense sampling: Gazebo's trajectory controller steps between points.
+SAMPLE_PERIOD = 0.005
 
 
 class ResetWorldNode(Node):
@@ -107,22 +98,16 @@ class ResetWorldNode(Node):
             self.get_logger().info("Robot is already at home position")
             return
 
-        samples = trapezoidal_segment(
+        samples = scurve_segment(
             start,
             home,
             MAX_JOINT_SPEEDS * SAFE_SPEED_SCALE,
             ACCELERATION_LIMITS,
-            sample_period=0.12,
+            sample_period=SAMPLE_PERIOD,
         )
-        message = JointTrajectory()
-        message.joint_names = list(JOINT_NAMES)
-        message.header.stamp = self.get_clock().now().to_msg()
-        for sample in samples:
-            point = JointTrajectoryPoint()
-            point.positions = sample.positions.tolist()
-            point.velocities = sample.velocities.tolist()
-            point.time_from_start = _duration_message(sample.time_from_start)
-            message.points.append(point)
+        message = joint_trajectory_message(
+            JOINT_NAMES, samples, self.get_clock().now().to_msg()
+        )
 
         duration = samples[-1].time_from_start
         self.get_logger().info(f"Homing GP7 robot ({duration:.2f} s)")

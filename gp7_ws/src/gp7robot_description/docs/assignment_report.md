@@ -95,11 +95,16 @@ the model before replacing the CAD-zero limits in a controller.
 
 ## Trajectory planning and velocity control
 
-Each joint segment uses a synchronized trapezoidal velocity profile. The
-acceleration and deceleration phases are symmetric; the longest joint sets the
-segment duration. The controller samples the profile every 20 ms and sends
-joint positions and velocities to Gazebo's native joint trajectory controller
-through `ros_gz_bridge`.
+Each segment uses a synchronized S-curve velocity profile: accelerate, cruise
+and decelerate each take a third of the segment, and the acceleration follows a
+sin² pulse so both acceleration and jerk are continuous. The longest joint sets
+the segment duration. Consecutive moves with no gripper action between them
+(lift → rotate, and raise → carry → lower onto Box A) are blended: the next
+move starts while the previous one decelerates, rounding the corner instead of
+stopping. The controller samples the profile every 5 ms (Gazebo's trajectory
+controller steps between points rather than interpolating) and sends joint
+positions and velocities to Gazebo's native joint trajectory controller through
+`ros_gz_bridge`.
 
 The demo runs at 15% of the GP7 datasheet's maximum axis speeds, with explicit
 acceleration limits in `pick_place.py`. Box B's target orientation is held at

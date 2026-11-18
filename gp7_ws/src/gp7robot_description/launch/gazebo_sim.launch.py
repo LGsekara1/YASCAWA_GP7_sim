@@ -1,8 +1,8 @@
 """Launch the GP7 assignment scene with Gazebo-native joint control."""
 
+import math
 import os
 import xml.etree.ElementTree as ET
-import math
 
 import numpy as np
 
@@ -12,10 +12,11 @@ from launch.actions import DeclareLaunchArgument, ExecuteProcess, SetEnvironment
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from gp7robot_description.kinematics import UPRIGHT_REFERENCE_CONFIGURATION, forward_kinematics
-
-
-JOINTS = ("joint1", "Joint2", "Joint3", "Join4", "Join5", "Joint6")
+from gp7robot_description.kinematics import (
+    JOINT_NAMES,
+    UPRIGHT_REFERENCE_CONFIGURATION,
+    forward_kinematics,
+)
 
 
 def _add_inertial(link, mass, inertia):
@@ -123,7 +124,7 @@ def _simulation_robot_description(urdf_path):
     i_clamps = (1, 60, 45, 1, 6, 1)
     torque_limits = (260, 260, 220, 80, 55, 35)
     for joint, p_gain, i_gain, d_gain, i_clamp, torque in zip(
-        JOINTS, p_gains, i_gains, d_gains, i_clamps, torque_limits
+        JOINT_NAMES, p_gains, i_gains, d_gains, i_clamps, torque_limits
     ):
         ET.SubElement(trajectory_plugin, "joint_name").text = joint
         ET.SubElement(trajectory_plugin, "initial_position").text = "0"
@@ -231,6 +232,12 @@ def generate_launch_description():
         executable="gp7_pick_place",
         parameters=[{"use_sim_time": True}],
         output="screen",
+        condition=IfCondition(LaunchConfiguration("run_demo")),
+    )
+    run_demo_arg = DeclareLaunchArgument(
+        "run_demo",
+        default_value="true",
+        description="Start the pick-and-place demo automatically",
     )
 
     resource_paths = [os.path.dirname(package_path)]
@@ -246,6 +253,7 @@ def generate_launch_description():
         [
             world_arg,
             headless_arg,
+            run_demo_arg,
             gazebo_resources,
             robot_state_publisher,
             gazebo,

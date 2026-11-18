@@ -1,7 +1,7 @@
 # GP7 Gazebo Pick-and-Place Workspace
 
 This ROS 2 package contains the SolidWorks GP7 description, URDF-derived D-H
-kinematics, a damped-least-squares IK solver, synchronized trapezoidal joint
+kinematics, a damped-least-squares IK solver, synchronized S-curve joint
 trajectories, and Gazebo worlds for the EN3563 pick-and-place task.
 
 ## Build and run
@@ -64,7 +64,7 @@ open. The trajectory generator and kinematics code remain available for study.
 - `docs/assignment_report.md`: frame assignment, D-H values, FK/IK, velocity
   profile, reach analysis, and implementation notes.
 - `gp7robot_description/kinematics.py`: FK, Jacobian, and numerical IK.
-- `gp7robot_description/trajectory.py`: synchronized trapezoidal profiles.
+- `gp7robot_description/trajectory.py`: synchronized S-curve profiles and move blending.
 - `gp7robot_description/pick_place.py`: upright pick-and-place sequence.
 - `worlds/gp7_pick_place_reachable.sdf`: repeatable reachable demo.
 - `worlds/gp7_task_spec.sdf`: Box A at the exact coordinates in the task.
