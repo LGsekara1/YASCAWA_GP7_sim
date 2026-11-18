@@ -99,8 +99,7 @@
     <limit
       lower="-1.76541379939274"
       upper="4.16870565738798"
-      effort="0"
-      velocity="0" />
+      effort="100" velocity="2.0" />
   </joint>
   <link
     name="Link2">
@@ -157,8 +156,7 @@
     <limit
       lower="-1.38040762104709"
       upper="1.84845149514013"
-      effort="0"
-      velocity="0" />
+      effort="100" velocity="2.0" />
   </joint>
   <link
     name="Link3">
@@ -213,10 +211,9 @@
     <axis
       xyz="0 1 0" />
     <limit
-      lower="-4.45410528641014"
-      upper="0.0837507687984118"
-      effort="0"
-      velocity="0" />
+      lower="-0.0837507687984118"
+      upper="4.45410528641014"
+      effort="100" velocity="2.0" />
   </joint>
   <link
     name="Link4">
@@ -271,10 +268,9 @@
     <axis
       xyz="1 0 0" />
     <limit
-      lower="-0.349064684038561"
-      upper="1.16635476743454E-06"
-      effort="0"
-      velocity="0" />
+      lower="-3.31612557878923"
+      upper="3.31612557878923"
+      effort="100" velocity="2.0" />
   </joint>
   <link
     name="Link5">
@@ -331,8 +327,7 @@
     <limit
       lower="-2.40252339028479"
       upper="2.30986559009995"
-      effort="0"
-      velocity="0" />
+      effort="100" velocity="2.0" />
   </joint>
   <link
     name="Link6">
@@ -389,7 +384,56 @@
     <limit
       lower="-2.42328686755966"
       upper="3.85640778111595"
-      effort="0"
-      velocity="0" />
+      effort="100" velocity="2.0" />
   </joint>
+
+  <ros2_control name="GP7GazeboSystem" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+
+    <joint name="joint1">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="Joint2">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="Joint3">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="Join4">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="Join5">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="Joint6">
+      <command_interface name="position"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+  </ros2_control>
+
+  <gazebo>
+    <plugin filename="libgz_ros2_control-system.so"
+            name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>CONTROLLERS_YAML_PATH</parameters>
+    </plugin>
+  </gazebo>
+
 </robot>
