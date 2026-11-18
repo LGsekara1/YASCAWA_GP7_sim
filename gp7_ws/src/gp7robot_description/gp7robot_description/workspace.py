@@ -15,7 +15,10 @@ import numpy as np
 
 from .kinematics import UPRIGHT_REFERENCE_CONFIGURATION
 from .pick_place import (
+    BLEND_RADIUS,
     BOX_B_SIZE,
+    CARTESIAN_ACCELERATION,
+    CARTESIAN_SPEED,
     GRIPPER_LINK_OFFSET,
     MAX_HORIZONTAL_REACH,
     SAFE_SPEED_SCALE,
@@ -29,10 +32,11 @@ DEFAULT_PARAMETERS = {
     "box_a_top_z": 0.20,
     "box_b_center_z": BOX_B_SIZE[2] / 2.0,
     "clearance_height": 0.55,
-    "retreat_height": 0.10,
+    "retreat_height": 0.15,
     "speed_scale": SAFE_SPEED_SCALE,
-    "cartesian_speed": 0.10,
-    "cartesian_acceleration": 0.20,
+    "cartesian_speed": CARTESIAN_SPEED,
+    "cartesian_acceleration": CARTESIAN_ACCELERATION,
+    "blend_radius": BLEND_RADIUS,
 }
 BOX_A_SIZE = 0.30
 # Keep Box B this far (edge to edge) from Box A and inside these radii.

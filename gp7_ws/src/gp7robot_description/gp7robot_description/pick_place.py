@@ -36,6 +36,7 @@ from .kinematics import (
 from .trajectory import (
     TrajectorySample,
     joint_trajectory_message,
+    path_speed_profile,
     scurve_segment,
     superpose,
 )
@@ -44,7 +45,10 @@ from .trajectory import (
 MAX_HORIZONTAL_REACH = 0.927
 BOX_B_SIZE = (0.05, 0.05, 0.05)
 GRIPPER_LINK_OFFSET = 0.075
-SAFE_SPEED_SCALE = 0.15
+SAFE_SPEED_SCALE = 0.30
+# Tool (gripper) speed and acceleration for the straight-line moves.
+CARTESIAN_SPEED = 0.25
+CARTESIAN_ACCELERATION = 0.40
 # Gazebo's JointTrajectoryController does not interpolate between points: the
 # setpoint steps to each point in turn, and the PID D term turns every step
 # into a torque spike. Dense sampling (5 physics steps) keeps steps tiny.
@@ -64,9 +68,71 @@ MAX_IK_STEP = math.radians(5.0)
 # starts once the previous one has begun to decelerate (the S-curve's last
 # third), so the arm rounds the corner instead of stopping.
 BLEND_START_FRACTION = 2.0 / 3.0
+# Corners of multi-leg Cartesian paths are replaced by circular arcs of this
+# radius (smaller if a leg is short), so the tool never has to slow down.
+BLEND_RADIUS = 0.10
+# Spacing of the dense geometric path used for arc-length lookup.
+PATH_RESOLUTION = 0.001
 IK_POSITION_TOLERANCE = 1.0e-5
 IK_ORIENTATION_TOLERANCE = 1.0e-4
 UPRIGHT_LINK6_ROTATION = forward_kinematics(UPRIGHT_REFERENCE_CONFIGURATION)[:3, :3]
+
+
+def rounded_polyline(
+    waypoints: list[np.ndarray], radius: float
+) -> tuple[np.ndarray, np.ndarray]:
+    """Densely sample a polyline whose corners are replaced by circular arcs.
+
+    Returns ``(points, arc_length)``. Each arc is tangent to both legs, so
+    the direction of travel changes continuously; an arc never uses more
+    than 45 % of either adjacent leg, so the ends of the path stay straight
+    (the final approach onto Box A is still purely vertical).
+    """
+    legs = [
+        (a, b) for a, b in zip(waypoints[:-1], waypoints[1:])
+        if np.linalg.norm(b - a) >= 1.0e-6
+    ]
+    directions = [(b - a) / np.linalg.norm(b - a) for a, b in legs]
+    lengths = [float(np.linalg.norm(b - a)) for a, b in legs]
+
+    # Tangent distance of each corner's fillet (0 for straight-through).
+    trims = [0.0] * (len(legs) + 1)
+    arcs: dict[int, tuple[float, float, np.ndarray]] = {}
+    for i in range(1, len(legs)):
+        d0, d1 = directions[i - 1], directions[i]
+        turn = math.acos(float(np.clip(np.dot(d0, d1), -1.0, 1.0)))
+        if turn < 1.0e-3 or turn > math.pi - 1.0e-3:
+            continue
+        trim = min(
+            radius * math.tan(turn / 2.0), 0.45 * lengths[i - 1], 0.45 * lengths[i]
+        )
+        normal = d1 - np.dot(d1, d0) * d0
+        normal /= np.linalg.norm(normal)
+        trims[i] = trim
+        arcs[i] = (turn, trim / math.tan(turn / 2.0), normal)
+
+    def line(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+        n = max(2, int(math.ceil(np.linalg.norm(b - a) / PATH_RESOLUTION)) + 1)
+        return a + np.linspace(0.0, 1.0, n)[:, None] * (b - a)
+
+    pieces = []
+    for i, ((a, b), d) in enumerate(zip(legs, directions)):
+        start = a + d * trims[i]
+        end = b - d * trims[i + 1]
+        pieces.append(line(start, end))
+        if i + 1 in arcs:
+            turn, r, normal = arcs[i + 1]
+            n = max(3, int(math.ceil(turn * r / PATH_RESOLUTION)) + 1)
+            phi = np.linspace(0.0, turn, n)[:, None]
+            centre = end + normal * r
+            pieces.append(centre - normal * r * np.cos(phi) + d * r * np.sin(phi))
+
+    points = np.vstack([pieces[0]] + [piece[1:] for piece in pieces[1:]])
+    steps = np.linalg.norm(np.diff(points, axis=0), axis=1)
+    keep = np.concatenate(([True], steps > 1.0e-9))
+    points = points[keep]
+    arc_length = np.concatenate(([0.0], np.cumsum(steps[steps > 1.0e-9])))
+    return points, arc_length
 
 
 class PickPlaceController(Node):
@@ -85,11 +151,13 @@ class PickPlaceController(Node):
         # keeps the arm well above Box A (top at 0.20 m).
         self.declare_parameter("clearance_height", 0.55)
         # How far the empty gripper rises straight up after releasing Box B.
-        self.declare_parameter("retreat_height", 0.10)
+        self.declare_parameter("retreat_height", 0.15)
         self.declare_parameter("speed_scale", SAFE_SPEED_SCALE)
         # Cartesian (tool) speed and acceleration limits for upright moves.
-        self.declare_parameter("cartesian_speed", 0.10)
-        self.declare_parameter("cartesian_acceleration", 0.20)
+        self.declare_parameter("cartesian_speed", CARTESIAN_SPEED)
+        self.declare_parameter("cartesian_acceleration", CARTESIAN_ACCELERATION)
+        # Radius of the arcs that round off the corners of a multi-leg path.
+        self.declare_parameter("blend_radius", BLEND_RADIUS)
 
         self.trajectory_publisher = self.create_publisher(
             JointTrajectory, "/model/GP7Robot/joint_trajectory", 10
@@ -209,13 +277,14 @@ class PickPlaceController(Node):
     def _cartesian_path(
         self, q_start: np.ndarray, waypoints: list[np.ndarray]
     ) -> list[TrajectorySample]:
-        """Straight Cartesian legs, blended, with the gripper kept upright.
+        """Straight Cartesian legs with rounded corners, gripper kept upright.
 
-        Each leg's length follows an S-curve velocity profile. With more than
-        one leg, the next leg starts as soon as the previous one begins to
-        decelerate (see ``superpose``), so the arm rounds the corner without
-        stopping. IK is solved at every sample (seeded by the previous
-        solution) with the upright Link6 orientation, so the box never tilts.
+        The legs are joined by tangent circular arcs (``rounded_polyline``)
+        and ONE smooth speed profile runs over the whole path length, so
+        the tool accelerates once, cruises at a constant speed through the
+        corners, and decelerates once at the end (no speed dips between
+        legs). IK is solved at every sample (seeded by the previous solution)
+        with the upright Link6 orientation, so the box never tilts.
         Joint velocities are the finite differences of the IK solutions. If
         any joint would exceed its speed limit the whole profile is slowed.
         """
@@ -235,30 +304,21 @@ class PickPlaceController(Node):
             self.get_parameter("speed_scale").value
         )
 
+        geometry, arc_length = rounded_polyline(
+            waypoints, float(self.get_parameter("blend_radius").value)
+        )
+        length = float(arc_length[-1])
+
         for _ in range(6):
-            segments = []
-            for a, b in legs:
-                length = float(np.linalg.norm(b - a))
-                direction = (b - a) / length
-                profile = scurve_segment(
-                    [0.0], [length], [speed], [accel], sample_period=SAMPLE_PERIOD
-                )
-                segments.append([
-                    TrajectorySample(
-                        s.time_from_start,
-                        a + direction * s.positions[0],
-                        direction * s.velocities[0],
-                    )
-                    for s in profile
-                ])
-            start_times = [0.0]
-            for segment in segments[:-1]:
-                start_times.append(
-                    start_times[-1] + BLEND_START_FRACTION * segment[-1].time_from_start
-                )
-            path = superpose(segments, start_times, sample_period=SAMPLE_PERIOD)
-            times = np.array([sample.time_from_start for sample in path])
-            points = [sample.positions for sample in path]
+            profile = path_speed_profile(
+                length, speed, accel, sample_period=SAMPLE_PERIOD
+            )
+            times = np.array([sample.time_from_start for sample in profile])
+            distance = np.array([sample.positions[0] for sample in profile])
+            points = np.column_stack([
+                np.interp(distance, arc_length, geometry[:, k]) for k in range(3)
+            ])
+            points[0], points[-1] = waypoints[0], waypoints[-1]
 
             q = q_start.copy()
             joints = [q.copy()]
@@ -472,8 +532,10 @@ class PickPlaceController(Node):
         self.get_logger().info("Box B placed at the centre of Box A")
         retreat_height = float(self.get_parameter("retreat_height").value)
         retreat_pose = release_pose + np.array([0.0, 0.0, retreat_height])
-        self._move_line(q, release_pose, retreat_pose, "lift gripper off Box B")
-        self.get_logger().info("Done; stopping here")
+        self._move_line(q, release_pose, retreat_pose, "lift arm away from Box B")
+        self.get_logger().info(
+            f"Box B released; arm lifted {retreat_height * 100:.0f} cm. Done"
+        )
 
 
 def main(args=None) -> None:

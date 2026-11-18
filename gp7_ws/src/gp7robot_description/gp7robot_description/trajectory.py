@@ -97,6 +97,60 @@ def scurve_segment(
     return samples
 
 
+def path_speed_profile(
+    length: float,
+    max_speed: float,
+    max_acceleration: float,
+    *,
+    sample_period: float = 0.02,
+) -> list[TrajectorySample]:
+    """Rest-to-rest profile along a path of ``length`` metres.
+
+    Same sin^2 acceleration pulse as ``scurve_segment`` (continuous
+    acceleration and jerk), but the ramp time comes from the acceleration
+    limit (Ta = 2 v / a) instead of always being a third of the move, so a
+    long path cruises at full speed for most of its length rather than
+    spending two thirds of the time speeding up and slowing down.
+    Positions and velocities are 1-element arrays (distance along the path).
+    """
+    if length <= 0.0 or max_speed <= 0.0 or max_acceleration <= 0.0:
+        raise ValueError("Length, speed and acceleration must be positive")
+    speed = max_speed
+    ramp = 2.0 * speed / max_acceleration
+    if speed * ramp > length:  # too short to reach full speed
+        speed = math.sqrt(max_acceleration * length / 2.0)
+        ramp = 2.0 * speed / max_acceleration
+    cruise = (length - speed * ramp) / speed
+    duration = 2.0 * ramp + cruise
+    accel_peak = 2.0 * speed / ramp
+
+    def profile(t: float) -> tuple[float, float]:
+        if t <= 0.0:
+            return 0.0, 0.0
+        if t >= duration:
+            return length, 0.0
+        if t < ramp:
+            phase = 2.0 * math.pi * t / ramp
+            return (
+                accel_peak
+                * (t * t / 4.0 + ramp * ramp / (8.0 * math.pi**2) * (math.cos(phase) - 1.0)),
+                accel_peak * (t / 2.0 - ramp / (4.0 * math.pi) * math.sin(phase)),
+            )
+        if t <= ramp + cruise:
+            return 0.5 * speed * ramp + speed * (t - ramp), speed
+        s_mirror, v_mirror = profile(duration - t)
+        return length - s_mirror, v_mirror
+
+    times = list(np.arange(0.0, duration, sample_period))
+    times.append(duration)
+    samples = []
+    for t in times:
+        s, v = profile(float(t))
+        samples.append(TrajectorySample(float(t), np.array([s]), np.array([v])))
+    samples[-1] = TrajectorySample(duration, np.array([length]), np.zeros(1))
+    return samples
+
+
 def superpose(
     segments: list[list[TrajectorySample]],
     start_times: Iterable[float],
