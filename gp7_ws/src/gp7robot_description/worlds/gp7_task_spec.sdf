@@ -33,10 +33,11 @@
       </link>
     </model>
 
-    <!-- Required assignment placement: centre at (1, 1, 0), bottom on floor. -->
+    <!-- Box A centre at (0.5, 0.5, 0), bottom on floor (lecturer's revision of the
+         task sheet's (1, 1, 0), which is beyond the GP7's 0.927 m reach). -->
     <model name="BoxA">
       <static>true</static>
-      <pose>1.0 1.0 0.10 0 0 0</pose>
+      <pose>0.50 0.50 0.10 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry><box><size>0.30 0.30 0.20</size></box></geometry>

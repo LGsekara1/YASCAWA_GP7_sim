@@ -40,15 +40,20 @@ DH_TABLE = (
     DHRow("T", math.radians(0.0), -0.058893322297, 0.000000000000, math.radians(0.0)),
 )
 
-# Limits exported with the CAD joint zero positions. The manufacturer's
-# physical limits are documented separately in docs/assignment.md because the
-# CAD joint zeros are offset from the manufacturer's S/L/U/R/B/T home zeros.
+# Limits in the CAD joint-zero convention.
+#  * Joint3 (U): the SolidWorks export had this range mirrored
+#    ([-255.2, +4.8] deg). That range contains the pose at about -75 deg where
+#    the forearm folds back onto the upper arm (wrist inside the shoulder),
+#    which a real GP7 cannot do. The mirrored range [-4.8, +255.2] keeps the
+#    datasheet's 260 deg span (U -70/+190) and excludes that fold.
+#  * Joint4 (R): the export limited this to [-20, 0] deg; the datasheet gives
+#    +/-190 deg.
 JOINT_LIMITS = np.array(
     [
         [-1.76541379939274, 4.16870565738798],
         [-1.38040762104709, 1.84845149514013],
-        [-4.45410528641014, 0.0837507687984118],
-        [-0.349064684038561, 0.00000116635476743454],
+        [-0.0837507687984118, 4.45410528641014],
+        [-3.31612557878923, 3.31612557878923],
         [-2.40252339028479, 2.30986559009995],
         [-2.42328686755966, 3.85640778111595],
     ],
@@ -58,17 +63,19 @@ JOINT_LIMITS = np.array(
 # Joint maximum speeds from the GP7 column of the supplied GP7/GP8 datasheet.
 MAX_JOINT_SPEEDS = np.deg2rad(np.array([375.0, 315.0, 410.0, 550.0, 550.0, 1000.0]))
 
-# A reachable Link6 orientation used to make the fixed gripper frame level.
-# The pick/place solver starts from this configuration to select a continuous
-# IK branch for the reachable demonstration world.
+# Reference pose that defines the gripper mount and the "upright" Link6
+# orientation. In this pose the flange points straight down above Box B
+# (flange at 0.35, 0.25, 0.42 m), so the gripper is mounted coaxially with the
+# joint-6 axis: rotating joint 6 only spins the gripper instead of swinging it
+# into Link5. The pick/place solver also seeds IK from this pose.
 UPRIGHT_REFERENCE_CONFIGURATION = np.array(
     [
-        2.765302557828160,
-        0.853068992938798,
-        -2.365244929528422,
-        -0.121865415418203,
-        1.100285142411147,
-        1.551485029448180,
+        2.58637615,
+        0.37832553,
+        3.91332751,
+        0.17453176,
+        0.71113281,
+        0.0,
     ],
     dtype=float,
 )

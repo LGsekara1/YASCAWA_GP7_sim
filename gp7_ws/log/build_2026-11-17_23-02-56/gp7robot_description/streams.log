@@ -1,0 +1,29 @@
+[0.427s] Invoking command in '/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/src/gp7robot_description': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/install/gp7robot_description/lib/python3.14/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/gp7robot_description build --build-base /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description/build install --record /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description/install.log --install-scripts $base/lib/gp7robot_description --single-version-externally-managed install_data
+[0.528s] /usr/lib/python3/dist-packages/setuptools/_distutils/dist.py:289: UserWarning: Unknown distribution option: 'tests_require'
+[0.528s]   warnings.warn(msg)
+[0.591s] running egg_info
+[0.601s] writing ../../build/gp7robot_description/gp7robot_description.egg-info/PKG-INFO
+[0.601s] writing dependency_links to ../../build/gp7robot_description/gp7robot_description.egg-info/dependency_links.txt
+[0.601s] writing entry points to ../../build/gp7robot_description/gp7robot_description.egg-info/entry_points.txt
+[0.601s] writing requirements to ../../build/gp7robot_description/gp7robot_description.egg-info/requires.txt
+[0.602s] writing top-level names to ../../build/gp7robot_description/gp7robot_description.egg-info/top_level.txt
+[0.624s] reading manifest file '../../build/gp7robot_description/gp7robot_description.egg-info/SOURCES.txt'
+[0.624s] adding license file 'LICENSE'
+[0.624s] writing manifest file '../../build/gp7robot_description/gp7robot_description.egg-info/SOURCES.txt'
+[0.624s] running build
+[0.625s] running build_py
+[0.625s] copying gp7robot_description/kinematics.py -> /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description/build/lib/gp7robot_description
+[0.625s] copying gp7robot_description/pick_place.py -> /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description/build/lib/gp7robot_description
+[0.625s] running install
+[0.628s] running install_lib
+[0.639s] running install_data
+[0.639s] copying launch/gazebo_sim.launch.py -> /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/install/gp7robot_description/share/gp7robot_description/launch
+[0.640s] running install_egg_info
+[0.650s] removing '/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/install/gp7robot_description/lib/python3.14/site-packages/gp7robot_description-0.0.0-py3.14.egg-info' (and everything under it)
+[0.651s] Copying ../../build/gp7robot_description/gp7robot_description.egg-info to /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/install/gp7robot_description/lib/python3.14/site-packages/gp7robot_description-0.0.0-py3.14.egg-info
+[0.651s] running install_scripts
+[0.704s] Installing gp7_move_joint script to /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/install/gp7robot_description/lib/gp7robot_description
+[0.704s] Installing gp7_pick_place script to /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/install/gp7robot_description/lib/gp7robot_description
+[0.704s] Installing gp7_reset_world script to /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/install/gp7robot_description/lib/gp7robot_description
+[0.705s] writing list of installed files to '/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description/install.log'
+[0.723s] Invoked command in '/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/src/gp7robot_description' returned '0': DEBUGINFOD_URLS=https://debuginfod.ubuntu.com PYTHONPATH=/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description/prefix_override:/usr/lib/python3/dist-packages/colcon_core/task/python/colcon_distutils_commands:/home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/install/gp7robot_description/lib/python3.14/site-packages:${PYTHONPATH} /usr/bin/python3 -W ignore:setup.py install is deprecated -W ignore:easy_install command is deprecated setup.py egg_info --egg-base ../../build/gp7robot_description build --build-base /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description/build install --record /home/sithum_peiris/Documents/GitHub/YASCAWA_GP7_sim/gp7_ws/build/gp7robot_description/install.log --install-scripts $base/lib/gp7robot_description --single-version-externally-managed install_data

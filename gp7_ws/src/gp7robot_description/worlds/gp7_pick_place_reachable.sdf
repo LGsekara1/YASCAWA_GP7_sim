@@ -33,10 +33,10 @@
       </link>
     </model>
 
-    <!-- Reachable demo layout. Box A's top centre is at 0.55, 0.55, 0.20 m. -->
+    <!-- Reachable demo layout. Box A at (0.5, 0.5, 0) as instructed by the lecturer; top centre is at 0.5, 0.5, 0.20 m. -->
     <model name="BoxA">
       <static>true</static>
-      <pose>0.55 0.55 0.10 0 0 0</pose>
+      <pose>0.50 0.50 0.10 0 0 0</pose>
       <link name="link">
         <collision name="collision">
           <geometry><box><size>0.30 0.30 0.20</size></box></geometry>

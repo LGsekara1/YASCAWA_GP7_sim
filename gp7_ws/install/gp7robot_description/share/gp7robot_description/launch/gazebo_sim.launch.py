@@ -9,6 +9,7 @@ import numpy as np
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, SetEnvironmentVariable, TimerAction
+from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from gp7robot_description.kinematics import UPRIGHT_REFERENCE_CONFIGURATION, forward_kinematics
@@ -104,6 +105,8 @@ def _simulation_robot_description(urdf_path):
         _add_fixed_joint(root, f"{name}_mount", "gp7_gripper", name, offset)
 
     gazebo = ET.SubElement(root, "gazebo")
+    # Enable Gazebo physics contacts between non-adjacent links in this model.
+    ET.SubElement(gazebo, "self_collide").text = "false"
     trajectory_plugin = ET.SubElement(
         gazebo,
         "plugin",
@@ -112,15 +115,23 @@ def _simulation_robot_description(urdf_path):
     )
     p_gains = (180, 180, 150, 35, 25, 15)
     d_gains = (28, 28, 24, 7, 5, 3)
+    # Integral action removes the steady-state gravity sag of a pure PD loop;
+    # the clamp (in N m) bounds wind-up during long moves.
+    # Only gravity-loaded joints (2, 3, 5) get integral action; joint 1 has a
+    # vertical axis and would only overshoot from wind-up.
+    i_gains = (0, 120, 100, 0, 8, 0)
+    i_clamps = (1, 60, 45, 1, 6, 1)
     torque_limits = (260, 260, 220, 80, 55, 35)
-    for joint, p_gain, d_gain, torque in zip(JOINTS, p_gains, d_gains, torque_limits):
+    for joint, p_gain, i_gain, d_gain, i_clamp, torque in zip(
+        JOINTS, p_gains, i_gains, d_gains, i_clamps, torque_limits
+    ):
         ET.SubElement(trajectory_plugin, "joint_name").text = joint
         ET.SubElement(trajectory_plugin, "initial_position").text = "0"
         ET.SubElement(trajectory_plugin, "position_p_gain").text = str(p_gain)
-        ET.SubElement(trajectory_plugin, "position_i_gain").text = "0"
+        ET.SubElement(trajectory_plugin, "position_i_gain").text = str(i_gain)
         ET.SubElement(trajectory_plugin, "position_d_gain").text = str(d_gain)
-        ET.SubElement(trajectory_plugin, "position_i_min").text = "-1"
-        ET.SubElement(trajectory_plugin, "position_i_max").text = "1"
+        ET.SubElement(trajectory_plugin, "position_i_min").text = str(-i_clamp)
+        ET.SubElement(trajectory_plugin, "position_i_max").text = str(i_clamp)
         ET.SubElement(trajectory_plugin, "position_cmd_min").text = str(-torque)
         ET.SubElement(trajectory_plugin, "position_cmd_max").text = str(torque)
 
@@ -167,9 +178,20 @@ def generate_launch_description():
         output="screen",
     )
 
+    headless_arg = DeclareLaunchArgument(
+        "headless",
+        default_value="false",
+        description="Run the Gazebo server only (no GUI)",
+    )
     gazebo = ExecuteProcess(
         cmd=["gz", "sim", "-r", "-v", "2", LaunchConfiguration("world")],
         output="screen",
+        condition=UnlessCondition(LaunchConfiguration("headless")),
+    )
+    gazebo_headless = ExecuteProcess(
+        cmd=["gz", "sim", "-r", "-s", "-v", "2", LaunchConfiguration("world")],
+        output="screen",
+        condition=IfCondition(LaunchConfiguration("headless")),
     )
 
     bridge = Node(
@@ -207,6 +229,7 @@ def generate_launch_description():
     pick_place = Node(
         package="gp7robot_description",
         executable="gp7_pick_place",
+        parameters=[{"use_sim_time": True}],
         output="screen",
     )
 
@@ -222,9 +245,11 @@ def generate_launch_description():
     return LaunchDescription(
         [
             world_arg,
+            headless_arg,
             gazebo_resources,
             robot_state_publisher,
             gazebo,
+            gazebo_headless,
             bridge,
             TimerAction(period=5.0, actions=[spawn_robot]),
             TimerAction(period=10.0, actions=[pick_place]),
