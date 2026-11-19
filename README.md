@@ -8,68 +8,45 @@ The package contains the SolidWorks-exported GP7 model, D-H forward/inverse kine
 
 ## Table of contents
 
-1. [Gallery](#gallery)
-2. [Repository layout](#repository-layout)
-3. [Requirements](#requirements)
-4. [Build and run](#build-and-run)
-5. [System architecture](#system-architecture)
-6. [ROS 2 nodes](#ros-2-nodes)
-7. [Topics, publishers and subscriptions](#topics-publishers-and-subscriptions)
-8. [Message data reference](#message-data-reference)
-9. [Parameters and launch arguments](#parameters-and-launch-arguments)
-10. [Robot model data](#robot-model-data)
-11. [Simulation world data](#simulation-world-data)
-12. [Pick-and-place sequence](#pick-and-place-sequence)
-13. [Dashboard (`gp7_gui`)](#dashboard-gp7_gui)
-14. [Move one joint by hand](#move-one-joint-by-hand)
-15. [Documentation](#documentation)
-16. [License](#license)
+1. [Repository layout](#repository-layout)
+2. [Requirements](#requirements)
+3. [Build and run](#build-and-run)
+4. [System architecture](#system-architecture)
+5. [ROS 2 nodes](#ros-2-nodes)
+6. [Topics, publishers and subscriptions](#topics-publishers-and-subscriptions)
+7. [Message data reference](#message-data-reference)
+8. [Parameters and launch arguments](#parameters-and-launch-arguments)
+9. [Robot model data](#robot-model-data)
+10. [Simulation world data](#simulation-world-data)
+11. [Pick-and-place sequence](#pick-and-place-sequence)
+12. [Dashboard (`gp7_gui`)](#dashboard-gp7_gui)
+13. [Move one joint by hand](#move-one-joint-by-hand)
+14. [Documentation](#documentation)
+15. [License](#license)
 
 ---
 
-## Gallery
-
-> Add your screenshots to `docs/images/` using the file names below (or change the paths). Each block has a ready-made slot.
 
 ### 1. Coordinate frames in RViz
 
 Launch: `ros2 run rviz2 rviz2 -d "$(ros2 pkg prefix gp7robot_description)/share/gp7robot_description/rviz/gp7_frames.rviz"`
 
-<!-- Replace the file with your own screenshot -->
-![GP7 link frames in RViz](docs/images/rviz_frames.png)
-
-*Suggested capture: RobotModel + TF display with axes and frame names (`base_link`, `Link 1` … `Link6`), Fixed Frame = `base_link`.*
+![GP7 link frames in RViz](media/rviz_frames.png)
 
 
 ### 2. Dashboard
 
 Launch: `ros2 run gp7robot_description gp7_gui`
 
-<!-- Replace the file with your own screenshot -->
-![GP7 pick-and-place dashboard](docs/images/dashboard.png)
+![GP7 pick-and-place dashboard](media/dashboard.png)
 
-*Suggested capture: window title "GP7 pick-and-place" showing joint angle/velocity plots, gripper top-view path, and height/speed plot while the task runs.*
 
 ### 3. Robot workspace in Gazebo
 
 Launch: `ros2 launch gp7robot_description gazebo_sim.launch.py`
 
-<!-- Replace the file with your own screenshot -->
-![GP7 workspace in Gazebo](docs/images/gazebo_workspace.png)
+![GP7 workspace in Gazebo](media/gazebo_world.png)
 
-*Suggested capture: GP7 at the origin, blue Box A at (0.5, 0.5), orange Box B at (0.35, 0.25).*
-
-| Pick (Box B grasped) | Carry | Place (Box B on Box A) |
-|---|---|---|
-| ![Pick](docs/images/gazebo_pick.png) | ![Carry](docs/images/gazebo_carry.png) | ![Place](docs/images/gazebo_place.png) |
-
-### 4. Reach / workspace plot (optional)
-
-![Reachability](docs/images/reachability.png)
-
-The repository already ships a reachability figure at `gp7_ws/src/gp7robot_description/docs/learning_guide/figures/reachability.png`; copy it to `docs/images/` or point the link there.
-
----
 
 ## Repository layout
 
